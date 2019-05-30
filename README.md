@@ -5,7 +5,7 @@ Certpeek peeks at the certificates exposed by SSL/TLS enabled hosts. Perfect for
 
 And, it support tunneling through a HTTP proxy!
 
-<p align="center"><img width="707" alt="Certpeek in action" src="certpeek.png"></p>
+<p align="center"><img width="707" alt="Certpeek in action" src="https://github.com/magnuswatn/certpeek/blob/master/certpeek.png?raw=true"></p>
 
 Usage:
 ```
