@@ -125,7 +125,7 @@ def main(host, proxy, servername, print_pem):
     if not certs:
         click.secho(
             "Could not retrieve a certificate chain from the specified host: {}".format(
-                ":".join(ssl_error.args[0][0])
+                ssl_error
             ),
             fg="red",
             err=True,
