@@ -2,6 +2,7 @@ import sys
 import base64
 import socket
 import string
+import ipaddress
 import urllib.parse
 
 from datetime import datetime
@@ -13,7 +14,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePublicKey
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 
-__version__ = "2019.11.5"
+__version__ = "2019.11.10"
 
 BAD_BUYPASS_CERTS = [
     "8acd454c36e2f873c90ae6c00df75928daa414a43be745e866e8172344178824",
@@ -82,9 +83,15 @@ KNOWN_CERT_TYPES = {
 @click.argument("host")
 @click.option("--proxy", envvar="https_proxy", help="Proxy to use.")
 @click.option("--servername", help="Custom SNI name to send in handshake.")
+@click.option("--no-servername", is_flag=True, help="Do not send SNI in the handshake.")
 @click.option("--print-pem", is_flag=True, help="Print certs in PEM format.")
-def main(host, proxy, servername, print_pem):
+def main(host, proxy, servername, no_servername, print_pem):
     """Peeks at certificates exposed by other hosts."""
+    if servername and no_servername:
+        raise click.BadArgumentUsage(
+            "--servername and --no-servername are mutually exclusive."
+        )
+
     host_split = host.split(":")
     if len(host_split) == 1:
         host = host_split[0], 443
@@ -105,10 +112,16 @@ def main(host, proxy, servername, print_pem):
     ctx = SSL.Context(SSL.SSLv23_METHOD)
     conn = SSL.Connection(ctx, s)
 
-    if servername:
-        conn.set_tlsext_host_name(servername.encode())
-    else:
-        conn.set_tlsext_host_name(host[0].encode())
+    if not no_servername:
+        if servername:
+            conn.set_tlsext_host_name(servername.encode())
+        else:
+            # IP addresses are not permitted in servername
+            # so only add if we are connecting do a DNS name.
+            try:
+                ipaddress.ip_address(host[0])
+            except ValueError:
+                conn.set_tlsext_host_name(host[0].encode())
 
     conn.set_connect_state()
     try:
