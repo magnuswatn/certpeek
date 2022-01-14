@@ -147,6 +147,8 @@ def main(host, proxy, servername, no_servername, print_pem):
         # the handshake will fail, but we will still
         # get our certificate.
         ssl_error = error
+    else:
+        ssl_error = None
 
     certs = conn.get_peer_cert_chain()
     if not certs:
@@ -300,4 +302,5 @@ def print_cert_info(cert):
 
 
 if __name__ == "__main__":
-    main()
+    # Pylance doesn't understand Click.
+    main() # type:ignore
