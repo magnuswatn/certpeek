@@ -159,7 +159,7 @@ def main(host, proxy, servername, no_servername, print_pem):
             fg="red",
             err=True,
         )
-        sys.exit(-1)
+        sys.exit(1)
 
     for cert in certs:
         print_cert_info(cert.to_cryptography())
@@ -199,14 +199,14 @@ def get_socket_via_proxy(proxy, host):
         click.secho(
             "Unable to connect to {}: {}".format(proxy, error), fg="red", err=True
         )
-        sys.exit(-1)
+        sys.exit(2)
 
     s.send("CONNECT {0}:{1} HTTP/1.1\r\nHost: {0}\r\n\r\n".format(*host).encode())
     proxy_response = s.recv(1024).decode()
     status_code = proxy_response.split("\r\n")[0].split(" ")[1]
     if status_code != "200":
         click.secho("Computer says no:\n{}".format(proxy_response), fg="red", err=True)
-        sys.exit(-1)
+        sys.exit(3)
     return s
 
 
@@ -218,7 +218,7 @@ def get_direct_socket(host):
         click.secho(
             "Unable to connect to {}:{} {}".format(*host, error), fg="red", err=True
         )
-        sys.exit(-1)
+        sys.exit(4)
     return s
 
 
