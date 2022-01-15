@@ -320,7 +320,7 @@ def print_cert_info(cert: Certificate, destination, last_issuer: Optional[Name])
     print_field("SHA256", [cert.fingerprint(hashes.SHA256()).hex()])
 
     if cert.fingerprint(hashes.SHA256()).hex() in BAD_BUYPASS_CERTS:
-        click.secho("This is an bad Buypass cert!", fg="red")
+        click.secho("This is a bad Buypass cert!", fg="red")
 
     if last_issuer is not None and last_issuer != cert.subject:
         click.secho("This cert is not the issuer of the previous cert", fg="red")
