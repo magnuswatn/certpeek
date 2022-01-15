@@ -96,7 +96,10 @@ KNOWN_CERT_TYPES = {
 @click.option("--servername", help="Custom SNI name to send in handshake.")
 @click.option("--no-servername", is_flag=True, help="Do not send SNI in the handshake.")
 @click.option("--print-pem", is_flag=True, help="Print certs in PEM format.")
-def main(host, proxy, servername, no_servername, print_pem):
+@click.option(
+    "--first-only", is_flag=True, help="Only process the first retrieved cert."
+)
+def main(host, proxy, servername, no_servername, print_pem, first_only):
     """Peeks at certificates exposed by other hosts."""
     if servername and no_servername:
         raise click.BadArgumentUsage(
@@ -163,6 +166,10 @@ def main(host, proxy, servername, no_servername, print_pem):
         if print_pem:
             pem_cert = crypto.dump_certificate(crypto.FILETYPE_PEM, cert)
             click.echo(pem_cert.decode())
+
+        if first_only:
+            break
+
 
 def get_socket_via_proxy(proxy, host):
 
