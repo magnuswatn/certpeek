@@ -1,18 +1,15 @@
-import sys
 import base64
-import socket
-import string
 import ipaddress
+import socket
+import sys
 import urllib.parse
-
 from datetime import datetime
 
 import click
-
-from OpenSSL import SSL, crypto
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePublicKey
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
+from OpenSSL import SSL, crypto
 
 __version__ = "2022.1.14dev"
 
@@ -167,7 +164,6 @@ def main(host, proxy, servername, no_servername, print_pem):
             pem_cert = crypto.dump_certificate(crypto.FILETYPE_PEM, cert)
             click.echo(pem_cert.decode())
 
-
 def get_socket_via_proxy(proxy, host):
 
     proxy_addr = urllib.parse.urlparse(proxy)
@@ -303,4 +299,4 @@ def print_cert_info(cert):
 
 if __name__ == "__main__":
     # Pylance doesn't understand Click.
-    main() # type:ignore
+    main()  # type:ignore
