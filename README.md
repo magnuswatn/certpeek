@@ -17,7 +17,9 @@ Options:
   --version          Show the version and exit.
   --proxy TEXT       Proxy to use.
   --servername TEXT  Custom SNI name to send in handshake.
+  --no-servername    Do not send SNI in the handshake.
   --print-pem        Print certs in PEM format.
+  --first-only       Only process the first retrieved cert.
   -h, --help         Show this message and exit.
 ```
 
