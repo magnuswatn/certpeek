@@ -4,12 +4,13 @@ import socket
 import sys
 import urllib.parse
 from datetime import datetime
+from typing import Optional
 
 import click
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePublicKey
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
-from cryptography.x509 import Certificate
+from cryptography.x509 import Certificate, Name
 from OpenSSL import SSL, crypto
 
 __version__ = "2022.1.14dev"
@@ -120,12 +121,21 @@ def main(host, proxy, servername, no_servername, print_pem, first_only):
         raise click.BadParameter("Invalid host specified")
 
     if proxy:
+        click.secho(f"Connecting via '{proxy}'", err=True)
         s = get_socket_via_proxy(proxy, host)
     else:
+        click.secho(f"Connecting directly to host '{host[0]}'", err=True)
         s = get_direct_socket(host)
 
     ctx = SSL.Context(SSL.SSLv23_METHOD)
     conn = SSL.Connection(ctx, s)
+
+    name_to_use: str = servername if servername else host[0]
+    try:
+        destination = ipaddress.ip_address(name_to_use)
+    except ValueError:
+        # hostname, not an ip
+        destination = name_to_use
 
     if not no_servername:
         if servername:
@@ -133,10 +143,8 @@ def main(host, proxy, servername, no_servername, print_pem, first_only):
         else:
             # IP addresses are not permitted in servername
             # so only add if we are connecting do a DNS name.
-            try:
-                ipaddress.ip_address(host[0])
-            except ValueError:
-                conn.set_tlsext_host_name(host[0].encode())
+            if isinstance(destination, str):
+                conn.set_tlsext_host_name(destination.encode())
 
     conn.set_connect_state()
     try:
@@ -162,8 +170,9 @@ def main(host, proxy, servername, no_servername, print_pem, first_only):
         )
         sys.exit(1)
 
+    last_issuer = None
     for cert in certs:
-        print_cert_info(cert.to_cryptography())
+        last_issuer = print_cert_info(cert.to_cryptography(), destination, last_issuer)
         if print_pem:
             pem_cert = crypto.dump_certificate(crypto.FILETYPE_PEM, cert)
             click.echo(pem_cert.decode())
@@ -275,7 +284,7 @@ def get_hash_algorithm_name(cert: Certificate):
     return cert.signature_hash_algorithm.name if cert.signature_hash_algorithm else None
 
 
-def print_cert_info(cert: Certificate):
+def print_cert_info(cert: Certificate, destination, last_issuer: Optional[Name]):
     sans = []
     scts = []
     policies = []
@@ -283,7 +292,10 @@ def print_cert_info(cert: Certificate):
     for ext in cert.extensions:
         if ext.oid.dotted_string == "2.5.29.17":
             for name in ext.value:
-                sans.append(str(name.value))
+                if name.value == destination:
+                    sans.append(click.style(name.value, fg="green"))
+                else:
+                    sans.append(str(name.value))
         elif ext.oid.dotted_string == "1.3.6.1.4.1.11129.2.4.2":
             scts = [sct for sct in ext.value]
         elif ext.oid.dotted_string == "2.5.29.32":
@@ -310,7 +322,14 @@ def print_cert_info(cert: Certificate):
     if cert.fingerprint(hashes.SHA256()).hex() in BAD_BUYPASS_CERTS:
         click.secho("This is an bad Buypass cert!", fg="red")
 
+    if last_issuer is not None and last_issuer != cert.subject:
+        click.secho("This cert is not the issuer of the previous cert", fg="red")
+
+    if cert.issuer == cert.subject:
+        click.secho("Self signed cert!", fg="red")
+
     click.echo()
+    return cert.issuer
 
 
 if __name__ == "__main__":
