@@ -9,6 +9,7 @@ import click
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePublicKey
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
+from cryptography.x509 import Certificate
 from OpenSSL import SSL, crypto
 
 __version__ = "2022.1.14dev"
@@ -257,7 +258,7 @@ def get_type(policies):
             pass
 
 
-def print_not_after_status(not_after):
+def get_not_after_status(not_after):
     delta = (not_after - datetime.utcnow()).total_seconds()
     if delta < 0:
         text = click.style("Expired!", fg="red")
@@ -270,10 +271,15 @@ def print_not_after_status(not_after):
     return "{} ({})".format(not_after, text)
 
 
-def print_cert_info(cert):
+def get_hash_algorithm_name(cert: Certificate):
+    return cert.signature_hash_algorithm.name if cert.signature_hash_algorithm else None
+
+
+def print_cert_info(cert: Certificate):
     sans = []
     scts = []
     policies = []
+    ekus = []
     for ext in cert.extensions:
         if ext.oid.dotted_string == "2.5.29.17":
             for name in ext.value:
@@ -282,6 +288,8 @@ def print_cert_info(cert):
             scts = [sct for sct in ext.value]
         elif ext.oid.dotted_string == "2.5.29.32":
             policies = ext.value
+        elif ext.oid.dotted_string == "2.5.29.37":
+            ekus = [eku._name for eku in ext.value]
 
     click.secho("#############################################################")
 
@@ -290,11 +298,12 @@ def print_cert_info(cert):
     print_field("Serial", [cert.serial_number])
     print_field("Key type", [get_key_info(cert.public_key())])
     print_field("Not before", [cert.not_valid_before])
-    print_field("Not after", [print_not_after_status(cert.not_valid_after)])
+    print_field("Not after", [get_not_after_status(cert.not_valid_after)])
     print_field("SANs", sans)
     print_field("SCTs", get_log_names(scts))
     print_field("Type", [get_type(policies)])
-    print_field("Signature alg", [cert.signature_hash_algorithm.name])
+    print_field("Extended Key Usages", ekus)
+    print_field("Signature alg", [get_hash_algorithm_name(cert)])
     print_field("SHA1", [cert.fingerprint(hashes.SHA1()).hex()])
     print_field("SHA256", [cert.fingerprint(hashes.SHA256()).hex()])
 
