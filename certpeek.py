@@ -292,7 +292,7 @@ def print_cert_info(cert: Certificate, destination, last_issuer: Optional[Name])
     for ext in cert.extensions:
         if ext.oid.dotted_string == "2.5.29.17":
             for name in ext.value:
-                if name.value == destination:
+                if name.value == destination and last_issuer is None:
                     sans.append(click.style(name.value, fg="green"))
                 else:
                     sans.append(str(name.value))
