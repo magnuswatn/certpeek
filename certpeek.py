@@ -13,7 +13,7 @@ from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 from cryptography.x509 import Certificate, Name
 from OpenSSL import SSL, crypto
 
-__version__ = "2022.1.14dev"
+__version__ = "2022.1.21dev"
 
 BAD_BUYPASS_CERTS = [
     "8acd454c36e2f873c90ae6c00df75928daa414a43be745e866e8172344178824",
@@ -284,6 +284,21 @@ def get_hash_algorithm_name(cert: Certificate):
     return cert.signature_hash_algorithm.name if cert.signature_hash_algorithm else None
 
 
+def name_matches_destination(name, destination):
+    if name.value == destination:
+        return True
+
+    if isinstance(name.value, str) and isinstance(destination, str):
+        # Working with domain names, not IPs - check for wildcard.
+        return (
+            name.value.startswith("*.")
+            and name.value.split(".", maxsplit=1)[1]
+            == destination.split(".", maxsplit=1)[1]
+        )
+
+    return False
+
+
 def print_cert_info(cert: Certificate, destination, last_issuer: Optional[Name]):
     sans = []
     scts = []
@@ -292,8 +307,8 @@ def print_cert_info(cert: Certificate, destination, last_issuer: Optional[Name])
     for ext in cert.extensions:
         if ext.oid.dotted_string == "2.5.29.17":
             for name in ext.value:
-                if name.value == destination and last_issuer is None:
-                    sans.append(click.style(name.value, fg="green"))
+                if last_issuer is None and name_matches_destination(name, destination):
+                    sans.append(click.style(str(name.value), fg="green"))
                 else:
                     sans.append(str(name.value))
         elif ext.oid.dotted_string == "1.3.6.1.4.1.11129.2.4.2":
