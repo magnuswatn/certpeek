@@ -13,7 +13,7 @@ from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 from cryptography.x509 import Certificate, Name
 from OpenSSL import SSL, crypto
 
-__version__ = "2022.1.21dev"
+__version__ = "2022.1.30"
 
 BAD_BUYPASS_CERTS = [
     "8acd454c36e2f873c90ae6c00df75928daa414a43be745e866e8172344178824",
