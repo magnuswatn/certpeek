@@ -4,10 +4,11 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
-black = "==19.3b0"
+black = "==21.12b0"
+isort = "*"
 
 [packages]
 certpeek = {editable = true,path = "."}
 
 [requires]
-python_version = "3.6"
+python_version = "3.8"
