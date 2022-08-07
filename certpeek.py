@@ -303,6 +303,7 @@ def name_matches_destination(
         # Working with domain names, not IPs - check for wildcard.
         return (
             name.value.startswith("*.")
+            and destination.count(".") > 1  # can't have *.no
             and name.value.split(".", maxsplit=1)[1]
             == destination.split(".", maxsplit=1)[1]
         )
