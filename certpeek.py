@@ -1,19 +1,20 @@
-import base64
-import ipaddress
 import socket
 import sys
 import urllib.parse
+from base64 import b64encode
 from datetime import datetime
-from typing import Optional
+from ipaddress import IPv4Address, IPv6Address, ip_address
+from typing import Any, Iterable, List, Optional, Tuple, Union
 
 import click
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePublicKey
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
-from cryptography.x509 import Certificate, Name
+from cryptography.x509 import Certificate, GeneralName, Name, PolicyInformation
+from cryptography.x509.certificate_transparency import SignedCertificateTimestamp
 from OpenSSL import SSL, crypto
 
-__version__ = "2022.1.30"
+__version__ = "2022.8.7dev"
 
 BAD_BUYPASS_CERTS = [
     "8acd454c36e2f873c90ae6c00df75928daa414a43be745e866e8172344178824",
@@ -101,38 +102,47 @@ KNOWN_CERT_TYPES = {
 @click.option(
     "--first-only", is_flag=True, help="Only process the first retrieved cert."
 )
-def main(host, proxy, servername, no_servername, print_pem, first_only):
+def main(
+    host: str,
+    proxy: str,
+    servername: str,
+    no_servername: bool,
+    print_pem: bool,
+    first_only: bool,
+):
     """Peeks at certificates exposed by other hosts."""
     if servername and no_servername:
         raise click.BadArgumentUsage(
             "--servername and --no-servername are mutually exclusive."
         )
 
+    # TODO: add support for IPv6
     host_split = host.split(":")
     if len(host_split) == 1:
-        host = host_split[0], 443
+        host_and_port = host_split[0], 443
     elif len(host_split) == 2:
         try:
             port = int(host_split[1])
         except ValueError:
             raise click.BadParameter("Port must be integer: {}".format(host_split[1]))
-        host = host_split[0], port
+        host_and_port = host_split[0], port
     else:
         raise click.BadParameter("Invalid host specified")
 
     if proxy:
         click.secho(f"Connecting via '{proxy}'", err=True)
-        s = get_socket_via_proxy(proxy, host)
+        s = get_socket_via_proxy(proxy, host_and_port)
     else:
-        click.secho(f"Connecting directly to host '{host[0]}'", err=True)
-        s = get_direct_socket(host)
+        click.secho(f"Connecting directly to host '{host_and_port[0]}'", err=True)
+        s = get_direct_socket(host_and_port)
 
     ctx = SSL.Context(SSL.SSLv23_METHOD)
     conn = SSL.Connection(ctx, s)
 
-    name_to_use: str = servername if servername else host[0]
+    name_to_use: str = servername if servername else host_and_port[0]
+    destination: Union[str, IPv4Address, IPv6Address]
     try:
-        destination = ipaddress.ip_address(name_to_use)
+        destination = ip_address(name_to_use)
     except ValueError:
         # hostname, not an ip
         destination = name_to_use
@@ -181,7 +191,7 @@ def main(host, proxy, servername, no_servername, print_pem, first_only):
             break
 
 
-def get_socket_via_proxy(proxy, host):
+def get_socket_via_proxy(proxy: str, host: Tuple[str, int]):
 
     proxy_addr = urllib.parse.urlparse(proxy)
     if proxy_addr.scheme != "http":
@@ -223,7 +233,7 @@ def get_socket_via_proxy(proxy, host):
     return s
 
 
-def get_direct_socket(host):
+def get_direct_socket(host: Tuple[str, int]):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         s.connect(host)
@@ -235,23 +245,21 @@ def get_direct_socket(host):
     return s
 
 
-def print_field(header, values):
+def print_field(header: str, values: Iterable[Union[str, int, None]]):
     if values and any(values):
         click.secho("[{}]".format(header))
         for value in values:
             click.echo("  {}".format(value))
 
 
-def get_log_names(scts):
+def get_log_names(scts: List[SignedCertificateTimestamp]) -> List[str]:
     names = []
     for sct in scts:
-        names.append(
-            KNOWN_LOGS.get(base64.b64encode(sct.log_id).decode(), "Unknown log")
-        )
+        names.append(KNOWN_LOGS.get(b64encode(sct.log_id).decode(), "Unknown log"))
     return names
 
 
-def get_key_info(key):
+def get_key_info(key: Any) -> str:
     if isinstance(key, RSAPublicKey):
         return "RSA ({})".format(key.key_size)
     if isinstance(key, EllipticCurvePublicKey):
@@ -259,15 +267,16 @@ def get_key_info(key):
     return "Unknown"
 
 
-def get_type(policies):
+def get_type(policies: List[PolicyInformation]) -> Optional[str]:
     for policy in policies:
         try:
             return KNOWN_CERT_TYPES[policy.policy_identifier.dotted_string]
         except KeyError:
             pass
+    return None
 
 
-def get_not_after_status(not_after):
+def get_not_after_status(not_after: datetime) -> str:
     delta = (not_after - datetime.utcnow()).total_seconds()
     if delta < 0:
         text = click.style("Expired!", fg="red")
@@ -284,7 +293,9 @@ def get_hash_algorithm_name(cert: Certificate):
     return cert.signature_hash_algorithm.name if cert.signature_hash_algorithm else None
 
 
-def name_matches_destination(name, destination):
+def name_matches_destination(
+    name: GeneralName, destination: Union[str, IPv4Address, IPv6Address]
+) -> bool:
     if name.value == destination:
         return True
 
@@ -299,11 +310,16 @@ def name_matches_destination(name, destination):
     return False
 
 
-def print_cert_info(cert: Certificate, destination, last_issuer: Optional[Name]):
-    sans = []
-    scts = []
-    policies = []
-    ekus = []
+def print_cert_info(
+    cert: Certificate,
+    destination: Union[str, IPv4Address, IPv6Address],
+    last_issuer: Optional[Name],
+):
+    sans: List[str] = []
+    scts: List[SignedCertificateTimestamp] = []
+    policies: List[PolicyInformation] = []
+    ekus: List[str] = []
+
     for ext in cert.extensions:
         if ext.oid.dotted_string == "2.5.29.17":
             for name in ext.value:
@@ -324,7 +340,7 @@ def print_cert_info(cert: Certificate, destination, last_issuer: Optional[Name])
     print_field("Issuer", [cert.issuer.rfc4514_string()])
     print_field("Serial", [cert.serial_number])
     print_field("Key type", [get_key_info(cert.public_key())])
-    print_field("Not before", [cert.not_valid_before])
+    print_field("Not before", [str(cert.not_valid_before)])
     print_field("Not after", [get_not_after_status(cert.not_valid_after)])
     print_field("SANs", sans)
     print_field("SCTs", get_log_names(scts))
@@ -348,5 +364,4 @@ def print_cert_info(cert: Certificate, destination, last_issuer: Optional[Name])
 
 
 if __name__ == "__main__":
-    # Pylance doesn't understand Click.
-    main()  # type:ignore
+    main()

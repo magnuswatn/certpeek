@@ -4,8 +4,9 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
-black = "==21.12b0"
+black = "*"
 isort = "*"
+mypy = "*"
 
 [packages]
 certpeek = {editable = true,path = "."}
