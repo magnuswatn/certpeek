@@ -20,6 +20,7 @@ Options:
   --no-servername    Do not send SNI in the handshake.
   --print-pem        Print certs in PEM format.
   --first-only       Only process the first retrieved cert.
+  --openssl-format   Print cert info like OpenSSL.
   -h, --help         Show this message and exit.
 ```
 

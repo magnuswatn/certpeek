@@ -103,6 +103,7 @@ KNOWN_CERT_TYPES = {
 @click.option(
     "--first-only", is_flag=True, help="Only process the first retrieved cert."
 )
+@click.option("--openssl-format", is_flag=True, help="Print cert info like OpenSSL.")
 def main(
     host: str,
     proxy: str,
@@ -110,6 +111,7 @@ def main(
     no_servername: bool,
     print_pem: bool,
     first_only: bool,
+    openssl_format: bool,
 ):
     """Peeks at certificates exposed by other hosts."""
     if servername and no_servername:
@@ -183,7 +185,12 @@ def main(
 
     last_issuer = None
     for cert in certs:
-        last_issuer = print_cert_info(cert.to_cryptography(), destination, last_issuer)
+        if openssl_format:
+            click.echo(crypto.dump_certificate(crypto.FILETYPE_TEXT, cert).decode())
+        else:
+            last_issuer = print_cert_info(
+                cert.to_cryptography(), destination, last_issuer
+            )
         if print_pem:
             pem_cert = crypto.dump_certificate(crypto.FILETYPE_PEM, cert)
             click.echo(pem_cert.decode())
