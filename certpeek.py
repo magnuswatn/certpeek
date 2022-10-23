@@ -14,7 +14,7 @@ from cryptography.x509 import Certificate, GeneralName, Name, PolicyInformation
 from cryptography.x509.certificate_transparency import SignedCertificateTimestamp
 from OpenSSL import SSL, crypto
 
-__version__ = "2022.8.8"
+__version__ = "2022.10.23dev"
 
 BAD_BUYPASS_CERTS = [
     "8acd454c36e2f873c90ae6c00df75928daa414a43be745e866e8172344178824",
@@ -112,7 +112,7 @@ def main(
     print_pem: bool,
     first_only: bool,
     openssl_format: bool,
-):
+) -> None:
     """Peeks at certificates exposed by other hosts."""
     if servername and no_servername:
         raise click.BadArgumentUsage(
@@ -168,7 +168,7 @@ def main(
         # If the host requires a client certificate
         # the handshake will fail, but we will still
         # get our certificate.
-        ssl_error = error
+        ssl_error: Optional[SSL.Error] = error
     else:
         ssl_error = None
 
@@ -199,7 +199,7 @@ def main(
             break
 
 
-def get_socket_via_proxy(proxy: str, host: Tuple[str, int]):
+def get_socket_via_proxy(proxy: str, host: Tuple[str, int]) -> socket.socket:
 
     proxy_addr = urllib.parse.urlparse(proxy)
     if proxy_addr.scheme != "http":
@@ -241,7 +241,7 @@ def get_socket_via_proxy(proxy: str, host: Tuple[str, int]):
     return s
 
 
-def get_direct_socket(host: Tuple[str, int]):
+def get_direct_socket(host: Tuple[str, int]) -> socket.socket:
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         s.connect(host)
@@ -253,7 +253,7 @@ def get_direct_socket(host: Tuple[str, int]):
     return s
 
 
-def print_field(header: str, values: Iterable[Union[str, int, None]]):
+def print_field(header: str, values: Iterable[Union[str, int, None]]) -> None:
     if values and any(values):
         click.secho("[{}]".format(header))
         for value in values:
@@ -297,7 +297,7 @@ def get_not_after_status(not_after: datetime) -> str:
     return "{} ({})".format(not_after, text)
 
 
-def get_hash_algorithm_name(cert: Certificate):
+def get_hash_algorithm_name(cert: Certificate) -> Optional[str]:
     return cert.signature_hash_algorithm.name if cert.signature_hash_algorithm else None
 
 
@@ -323,7 +323,7 @@ def print_cert_info(
     cert: Certificate,
     destination: Union[str, IPv4Address, IPv6Address],
     last_issuer: Optional[Name],
-):
+) -> Name:
     sans: List[str] = []
     scts: List[SignedCertificateTimestamp] = []
     policies: List[PolicyInformation] = []

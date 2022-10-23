@@ -37,10 +37,26 @@ include = ["certpeek.py"]
 path = "certpeek.py"
 
 [tool.hatch.envs.default]
-dependencies = ["black", "isort", "mypy"]
+dependencies = ["black", "isort", "mypy", "types-pyOpenSSL"]
 
 [tool.hatch.envs.default.scripts]
 mypy = "python -m mypy --config=pyproject.toml certpeek.py"
 black = "python -m black --config=pyproject.toml certpeek.py"
 isort = "python -m isort --settings-file=pyproject.toml certpeek.py"
 checks = ["black", "isort", "mypy"]
+
+[tool.isort]
+profile = "black"
+
+[tool.mypy]
+warn_unused_configs = true
+disallow_subclassing_any = true
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+disallow_untyped_decorators = true
+check_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
