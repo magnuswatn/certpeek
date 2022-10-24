@@ -1,10 +1,11 @@
 import socket
 import sys
-import urllib.parse
 from base64 import b64encode
+from dataclasses import dataclass
 from datetime import datetime
 from ipaddress import IPv4Address, IPv6Address, ip_address
-from typing import Any, Iterable, List, Optional, Tuple, Union
+from typing import Any, Iterable, List, Optional, Union
+from urllib.parse import urlsplit
 
 import click
 from cryptography.hazmat.primitives import hashes
@@ -102,6 +103,21 @@ KNOWN_CERT_TYPES = {
 }
 
 
+@dataclass
+class Host:
+    host: Union[str, IPv4Address, IPv6Address]
+    port: int
+
+    def __str__(self) -> str:
+        if isinstance(self.host, IPv6Address):
+            return f"[{self.host}]:{self.port}"
+        return f"{self.host}:{self.port}"
+
+    @property
+    def is_ip(self) -> bool:
+        return isinstance(self.host, (IPv4Address, IPv6Address))
+
+
 @click.command(context_settings={"help_option_names": ["-h", "--help"]})
 @click.version_option(version=__version__)
 @click.argument("host")
@@ -128,45 +144,26 @@ def main(
             "--servername and --no-servername are mutually exclusive."
         )
 
-    # TODO: add support for IPv6
-    host_split = host.split(":")
-    if len(host_split) == 1:
-        host_and_port = host_split[0], 443
-    elif len(host_split) == 2:
-        try:
-            port = int(host_split[1])
-        except ValueError:
-            raise click.BadParameter("Port must be integer: {}".format(host_split[1]))
-        host_and_port = host_split[0], port
-    else:
-        raise click.BadParameter("Invalid host specified")
+    parsed_host = parse_host_input(host)
 
     if proxy:
         click.secho(f"Connecting via '{proxy}'", err=True)
-        s = get_socket_via_proxy(proxy, host_and_port)
+        s = get_socket_via_proxy(proxy, parsed_host)
     else:
-        click.secho(f"Connecting directly to host '{host_and_port[0]}'", err=True)
-        s = get_direct_socket(host_and_port)
+        click.secho(f"Connecting directly to host '{parsed_host}'", err=True)
+        s = get_direct_socket(parsed_host)
 
     ctx = SSL.Context(SSL.SSLv23_METHOD)
     conn = SSL.Connection(ctx, s)
-
-    name_to_use: str = servername if servername else host_and_port[0]
-    destination: Union[str, IPv4Address, IPv6Address]
-    try:
-        destination = ip_address(name_to_use)
-    except ValueError:
-        # hostname, not an ip
-        destination = name_to_use
 
     if not no_servername:
         if servername:
             conn.set_tlsext_host_name(servername.encode())
         else:
             # IP addresses are not permitted in servername
-            # so only add if we are connecting do a DNS name.
-            if isinstance(destination, str):
-                conn.set_tlsext_host_name(destination.encode())
+            # so only add if we are connecting to a DNS name.
+            if not parsed_host.is_ip:
+                conn.set_tlsext_host_name(str(parsed_host.host).encode())
 
     conn.set_connect_state()
     try:
@@ -198,7 +195,7 @@ def main(
             click.echo(crypto.dump_certificate(crypto.FILETYPE_TEXT, cert).decode())
         else:
             last_issuer = print_cert_info(
-                cert.to_cryptography(), destination, last_issuer
+                cert.to_cryptography(), parsed_host.host, last_issuer
             )
         if print_pem:
             pem_cert = crypto.dump_certificate(crypto.FILETYPE_PEM, cert)
@@ -208,56 +205,84 @@ def main(
             break
 
 
-def get_socket_via_proxy(proxy: str, host: Tuple[str, int]) -> socket.socket:
+def parse_host_input(input: str) -> Host:
+    # A bare IPv6 address can be confused
+    # with a host:port combo, so let's try
+    # to parse it as that first.
+    try:
+        return Host(ip_address(input), 443)
+    except ValueError:
+        pass
 
-    proxy_addr = urllib.parse.urlparse(proxy)
+    parsed_host = urlsplit(input)
+    if not parsed_host.netloc:
+        parsed_host = urlsplit(f"//{input}")
+
+    if not parsed_host.hostname:
+        raise click.BadParameter("Invalid host specified")
+
+    try:
+        port = parsed_host.port
+    except ValueError:
+        raise click.BadParameter("Invalid port specified")
+
+    if port is None:
+        # default to 443, or whatever is default for the
+        # specified schema (if we know it)
+        port = 443
+        if parsed_host.scheme:
+            try:
+                port = socket.getservbyname(parsed_host.scheme)
+            except OSError:
+                # unknown scheme
+                pass
+
+    try:
+        return Host(ip_address(parsed_host.hostname), port)
+    except ValueError:
+        return Host(parsed_host.hostname, port)
+
+
+def get_socket_via_proxy(proxy: str, host: Host) -> socket.socket:
+
+    proxy_addr = urlsplit(proxy)
     if proxy_addr.scheme != "http":
         raise click.BadParameter("Only http proxies are supported")
 
-    proxy_split = proxy_addr.netloc.split(":")
-    if len(proxy_split) == 1:
-        proxy_host = proxy_split[0]
-        proxy_port = 8080
-    elif len(proxy_split) == 2:
-        try:
-            port = int(proxy_split[1])
-        except ValueError:
-            raise click.BadParameter(
-                "Proxy port must be integer: {}".format(proxy_split[1])
-            )
+    proxy_host = proxy_addr.hostname
+    try:
+        proxy_port = proxy_addr.port or 8080
+    except ValueError:
+        raise click.BadParameter("Invalid proxy port specified")
 
-        proxy_host = proxy_split[0]
-        proxy_port = port
-    else:
+    if proxy_host is None:
         raise click.BadParameter("Invalid proxy specified")
 
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
     try:
-        s.connect((proxy_host, proxy_port))
+        s = socket.create_connection((proxy_host, proxy_port))
     except socket.error as error:
-        click.secho(
-            "Unable to connect to {}: {}".format(proxy, error), fg="red", err=True
-        )
+        click.secho(f"Unable to connect to proxy {proxy}: {error}", fg="red", err=True)
         sys.exit(2)
 
-    s.send("CONNECT {0}:{1} HTTP/1.1\r\nHost: {0}\r\n\r\n".format(*host).encode())
-    proxy_response = s.recv(1024).decode()
-    status_code = proxy_response.split("\r\n")[0].split(" ")[1]
+    s.send(f"CONNECT {host} HTTP/1.1\r\nHost: {host}\r\n\r\n".encode())
+    try:
+        proxy_response = s.recv(1024).decode()
+        status_code = proxy_response.split("\r\n")[0].split(" ")[1]
+    except (UnicodeDecodeError, IndexError):
+        click.secho(f"Recieved invalid response from proxy {proxy}", fg="red", err=True)
+        sys.exit(5)
+
     if status_code != "200":
-        click.secho("Computer says no:\n{}".format(proxy_response), fg="red", err=True)
+        click.secho(f"Computer says no:\n{proxy_response}", fg="red", err=True)
         sys.exit(3)
     return s
 
 
-def get_direct_socket(host: Tuple[str, int]) -> socket.socket:
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+def get_direct_socket(host: Host) -> socket.socket:
     try:
-        s.connect(host)
+        s = socket.create_connection((str(host.host), host.port))
     except socket.error as error:
-        click.secho(
-            "Unable to connect to {}:{} {}".format(*host, error), fg="red", err=True
-        )
+        click.secho(f"Unable to connect to {host}: {error}", fg="red", err=True)
         sys.exit(4)
     return s
 
