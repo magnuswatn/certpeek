@@ -15,7 +15,7 @@ from cryptography.x509 import Certificate, GeneralName, Name, PolicyInformation
 from cryptography.x509.certificate_transparency import SignedCertificateTimestamp
 from OpenSSL import SSL, crypto
 
-__version__ = "2022.10.24"
+__version__ = "2022.10.27"
 
 BAD_BUYPASS_CERTS = [
     "8acd454c36e2f873c90ae6c00df75928daa414a43be745e866e8172344178824",
@@ -131,8 +131,8 @@ class Host:
 @click.option("--openssl-format", is_flag=True, help="Print cert info like OpenSSL.")
 def main(
     host: str,
-    proxy: str,
-    servername: str,
+    proxy: Optional[str],
+    servername: Optional[str],
     no_servername: bool,
     print_pem: bool,
     first_only: bool,
@@ -195,7 +195,7 @@ def main(
             click.echo(crypto.dump_certificate(crypto.FILETYPE_TEXT, cert).decode())
         else:
             last_issuer = print_cert_info(
-                cert.to_cryptography(), parsed_host.host, last_issuer
+                cert.to_cryptography(), servername or parsed_host.host, last_issuer
             )
         if print_pem:
             pem_cert = crypto.dump_certificate(crypto.FILETYPE_PEM, cert)
