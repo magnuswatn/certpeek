@@ -7,7 +7,7 @@ name = "certpeek"
 description = "Peeks at certificates exposed by other hosts."
 readme = "README.md"
 license = { file = "LICENSE" }
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 authors = [{ name = "Magnus Watn", email = "magnus@watn.no" }]
 keywords = []
 classifiers = [
@@ -15,10 +15,10 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
 ]
 dependencies = ["click", "cryptography", "pyopenssl"]
 dynamic = ["version"]
