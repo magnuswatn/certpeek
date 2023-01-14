@@ -15,7 +15,7 @@ from cryptography.x509 import Certificate, GeneralName, Name, PolicyInformation
 from cryptography.x509.certificate_transparency import SignedCertificateTimestamp
 from OpenSSL import SSL, crypto
 
-__version__ = "2022.10.27"
+__version__ = "2023.1.14"
 
 BAD_BUYPASS_CERTS = [
     "8acd454c36e2f873c90ae6c00df75928daa414a43be745e866e8172344178824",
@@ -91,6 +91,7 @@ KNOWN_LOGS = {
     "Z422Wz50Q7bzo3DV4TqxtDvgoNNR98p0IlDHxvpRqIo=": "Trust Asia Log2021",
     "w2X5s2VPMoPHnamOk9dBj1ure+MlLJjh0vBLuetCfSM=": "Trust Asia Log2022",
     "6H6nZgvCbPYALvVyXT/g4zG5OTu5L79Y6zuQSdr1Q1o=": "Trust Asia Log2023",
+    "h0+1DcAp2ZMd5XPp8omejkUzs5LTiwpGJXS/D+6y/B4=": "Trust Asia Log2024-2",
     "AwGd8/2FppqOvR+sxtqbpz5Gl3T+d/V5/FoIuDKMHWs=": "Venafi Gen2 CT log",
     "rDua7X+pZ0dXFZ5tfVdWcvnZgQCUHpve/+yhMTt1eC0=": "Venafi log",
     "QbLcLonmPOSvG6e7Kb9oxt7m+fHMBH4w3/rjs7olkmM=": "WoSign log",
