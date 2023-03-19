@@ -2,7 +2,7 @@ import socket
 import sys
 from base64 import b64encode
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from ipaddress import IPv4Address, IPv6Address, ip_address
 from typing import Any, Iterable, List, Optional, Union
 from urllib.parse import urlsplit
@@ -15,7 +15,7 @@ from cryptography.x509 import Certificate, GeneralName, Name, PolicyInformation
 from cryptography.x509.certificate_transparency import SignedCertificateTimestamp
 from OpenSSL import SSL, crypto
 
-__version__ = "2023.1.14"
+__version__ = "2023.3.19"
 
 BAD_BUYPASS_CERTS = [
     "8acd454c36e2f873c90ae6c00df75928daa414a43be745e866e8172344178824",
@@ -245,7 +245,6 @@ def parse_host_input(input: str) -> Host:
 
 
 def get_socket_via_proxy(proxy: str, host: Host) -> socket.socket:
-
     proxy_addr = urlsplit(proxy)
     if proxy_addr.scheme != "http":
         raise click.BadParameter("Only http proxies are supported")
@@ -319,6 +318,14 @@ def get_type(policies: List[PolicyInformation]) -> Optional[str]:
     return None
 
 
+def get_local_datetime(dt: datetime) -> str:
+    """
+    Takes a naive datetime in utc, and returns
+    it as a string in the local timezone.
+    """
+    return str(dt.replace(tzinfo=timezone.utc).astimezone())
+
+
 def get_not_after_status(not_after: datetime) -> str:
     delta = (not_after - datetime.utcnow()).total_seconds()
     if delta < 0:
@@ -329,7 +336,7 @@ def get_not_after_status(not_after: datetime) -> str:
     else:
         text = click.style("Valid", fg="green")
 
-    return "{} ({})".format(not_after, text)
+    return "{} ({})".format(get_local_datetime(not_after), text)
 
 
 def get_hash_algorithm_name(cert: Certificate) -> Optional[str]:
@@ -384,7 +391,7 @@ def print_cert_info(
     print_field("Issuer", [cert.issuer.rfc4514_string()])
     print_field("Serial", [cert.serial_number])
     print_field("Key type", [get_key_info(cert.public_key())])
-    print_field("Not before", [str(cert.not_valid_before)])
+    print_field("Not before", [get_local_datetime(cert.not_valid_before)])
     print_field("Not after", [get_not_after_status(cert.not_valid_after)])
     print_field("SANs", sans)
     print_field("SCTs", get_log_names(scts))
