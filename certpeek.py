@@ -15,7 +15,7 @@ from cryptography.x509 import Certificate, GeneralName, Name, PolicyInformation
 from cryptography.x509.certificate_transparency import SignedCertificateTimestamp
 from OpenSSL import SSL, crypto
 
-__version__ = "2023.3.19"
+__version__ = "2023.8.9"
 
 BAD_BUYPASS_CERTS = [
     "8acd454c36e2f873c90ae6c00df75928daa414a43be745e866e8172344178824",
@@ -305,7 +305,7 @@ def get_key_info(key: Any) -> str:
     if isinstance(key, RSAPublicKey):
         return "RSA ({})".format(key.key_size)
     if isinstance(key, EllipticCurvePublicKey):
-        return "ECC ({})".format(key.key_size)
+        return "ECC ({})".format(key.curve.name)
     return "Unknown"
 
 
