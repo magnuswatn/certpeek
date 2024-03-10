@@ -338,14 +338,32 @@ def get_type(policies: List[PolicyInformation]) -> Optional[str]:
 
 def get_local_datetime(dt: datetime) -> str:
     """
-    Takes a naive datetime in utc, and returns
+    Takes a timezone aware datetime, and returns
     it as a string in the local timezone.
     """
-    return str(dt.replace(tzinfo=timezone.utc).astimezone())
+    return str(dt.astimezone())
+
+
+def get_not_before(cert: Certificate) -> datetime:
+    try:
+        # cryptography >= 42
+        return cert.not_valid_before_utc
+    except AttributeError:
+        # cryptography < 42
+        return cert.not_valid_before.replace(tzinfo=timezone.utc)
+
+
+def get_not_after(cert: Certificate) -> datetime:
+    try:
+        # cryptography >= 42
+        return cert.not_valid_after_utc
+    except AttributeError:
+        # cryptography < 42
+        return cert.not_valid_after.replace(tzinfo=timezone.utc)
 
 
 def get_not_after_status(not_after: datetime) -> str:
-    delta = (not_after - datetime.utcnow()).total_seconds()
+    delta = (not_after - datetime.now(tz=timezone.utc)).total_seconds()
     if delta < 0:
         text = click.style("Expired!", fg="red")
     elif delta < 2629743:
@@ -409,8 +427,8 @@ def print_cert_info(
     print_field("Issuer", [cert.issuer.rfc4514_string()])
     print_field("Serial", [cert.serial_number])
     print_field("Key type", [get_key_info(cert.public_key())])
-    print_field("Not before", [get_local_datetime(cert.not_valid_before)])
-    print_field("Not after", [get_not_after_status(cert.not_valid_after)])
+    print_field("Not before", [get_local_datetime(get_not_before(cert))])
+    print_field("Not after", [get_not_after_status(get_not_after(cert))])
     print_field("SANs", sans)
     print_field("SCTs", get_log_names(scts))
     print_field("Type", [get_type(policies)])
