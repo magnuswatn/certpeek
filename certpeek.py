@@ -10,12 +10,13 @@ from urllib.parse import urlsplit
 import click
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePublicKey
+from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
-from cryptography.x509 import Certificate, GeneralName, Name, PolicyInformation
+from cryptography.x509 import Certificate, GeneralName, PolicyInformation
 from cryptography.x509.certificate_transparency import SignedCertificateTimestamp
 from OpenSSL import SSL, crypto
 
-__version__ = "2024.9.1"
+__version__ = "2025.3.5"
 
 BAD_BUYPASS_CERTS = [
     "8acd454c36e2f873c90ae6c00df75928daa414a43be745e866e8172344178824",
@@ -231,13 +232,13 @@ def main(
         )
         sys.exit(1)
 
-    last_issuer = None
+    last_cert = None
     for cert in certs:
         if openssl_format:
             click.echo(crypto.dump_certificate(crypto.FILETYPE_TEXT, cert).decode())
         else:
-            last_issuer = print_cert_info(
-                cert.to_cryptography(), servername or parsed_host.host, last_issuer
+            last_cert = print_cert_info(
+                cert.to_cryptography(), servername or parsed_host.host, last_cert
             )
         if print_pem:
             pem_cert = crypto.dump_certificate(crypto.FILETYPE_PEM, cert)
@@ -423,8 +424,8 @@ def name_matches_destination(
 def print_cert_info(
     cert: Certificate,
     destination: Union[str, IPv4Address, IPv6Address],
-    last_issuer: Optional[Name],
-) -> Name:
+    last_cert: Optional[Certificate],
+) -> Certificate:
     sans: List[str] = []
     scts: List[SignedCertificateTimestamp] = []
     policies: List[PolicyInformation] = []
@@ -433,7 +434,7 @@ def print_cert_info(
     for ext in cert.extensions:
         if ext.oid.dotted_string == "2.5.29.17":
             for name in ext.value:
-                if last_issuer is None and name_matches_destination(name, destination):
+                if last_cert is None and name_matches_destination(name, destination):
                     sans.append(click.style(str(name.value), fg="green"))
                 else:
                     sans.append(str(name.value))
@@ -463,14 +464,17 @@ def print_cert_info(
     if cert.fingerprint(hashes.SHA256()).hex() in BAD_BUYPASS_CERTS:
         click.secho("This is a bad Buypass cert!", fg="red")
 
-    if last_issuer is not None and last_issuer != cert.subject:
-        click.secho("This cert is not the issuer of the previous cert", fg="red")
+    if last_cert is not None:
+        try:
+            last_cert.verify_directly_issued_by(cert)
+        except (ValueError, TypeError, InvalidSignature):
+            click.secho("This cert is not the issuer of the previous cert", fg="red")
 
     if cert.issuer == cert.subject:
         click.secho("Self signed cert!", fg="red")
 
     click.echo()
-    return cert.issuer
+    return cert
 
 
 if __name__ == "__main__":

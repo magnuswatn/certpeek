@@ -21,7 +21,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
 ]
-dependencies = ["click", "cryptography", "pyopenssl"]
+dependencies = ["click", "cryptography>=40.0.0", "pyopenssl"]
 dynamic = ["version"]
 
 [project.scripts]
