@@ -2,7 +2,7 @@ import socket
 import sys
 from base64 import b64encode
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from ipaddress import IPv4Address, IPv6Address, ip_address
 from typing import Any, Iterable, List, Optional, Union
 from urllib.parse import urlsplit
@@ -16,7 +16,7 @@ from cryptography.x509 import Certificate, GeneralName, PolicyInformation
 from cryptography.x509.certificate_transparency import SignedCertificateTimestamp
 from OpenSSL import SSL, crypto
 
-__version__ = "2025.3.5"
+__version__ = "2025.5.12"
 
 BAD_BUYPASS_CERTS = [
     "8acd454c36e2f873c90ae6c00df75928daa414a43be745e866e8172344178824",
@@ -386,12 +386,22 @@ def get_not_after(cert: Certificate) -> datetime:
         return cert.not_valid_after.replace(tzinfo=timezone.utc)
 
 
-def get_not_after_status(not_after: datetime) -> str:
+def get_not_after_status(cert: Certificate) -> str:
+    not_after = get_not_after(cert)
+    not_before = get_not_before(cert)
+    lifetime = not_after - not_before
+
+    if lifetime < timedelta(days=10):
+        warning_limit = (lifetime / 2).total_seconds()
+    elif lifetime < timedelta(days=90):
+        warning_limit = (lifetime / 3).total_seconds()
+    else:
+        warning_limit = 2629743
+
     delta = (not_after - datetime.now(tz=timezone.utc)).total_seconds()
     if delta < 0:
         text = click.style("Expired!", fg="red")
-    elif delta < 2629743:
-        # less than a month
+    elif delta < warning_limit:
         text = click.style("Expires soon!", fg="yellow")
     else:
         text = click.style("Valid", fg="green")
@@ -452,7 +462,7 @@ def print_cert_info(
     print_field("Serial", [cert.serial_number])
     print_field("Key type", [get_key_info(cert.public_key())])
     print_field("Not before", [get_local_datetime(get_not_before(cert))])
-    print_field("Not after", [get_not_after_status(get_not_after(cert))])
+    print_field("Not after", [get_not_after_status(cert)])
     print_field("SANs", sans)
     print_field("SCTs", get_log_names(scts))
     print_field("Type", [get_type(policies)])
