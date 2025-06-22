@@ -5,6 +5,7 @@ Update the list of known CT logs
 Run it like this:
 > ./updatectlogs.py
 """
+
 import hashlib
 import re
 import subprocess
@@ -24,7 +25,11 @@ def main() -> None:
     resp.raise_for_status()
     js = resp.json()
 
-    logs = [log for operator in js["operators"] for log in operator["logs"]]
+    logs = [
+        log
+        for operator in js["operators"]
+        for log in operator["logs"] + operator["tiled_logs"]
+    ]
 
     for log in logs:
         sha256 = hashlib.sha256()
@@ -32,6 +37,9 @@ def main() -> None:
         log_key = b64decode(log.get("key"))
         sha256.update(log_key)
         log_id = b64encode(sha256.digest()).decode()
+        if log_id == "LtakTeuPDIZGZ3acTt0EH4QjZ1X6OqymNNCTXfzVmnA=":
+            # Bogus placeholder log to unbreak misbehaving CT libraries
+            continue
         KNOWN_LOGS.update({log_id: log_desc})
 
     unformatted_new_known_logs_list = "KNOWN_LOGS="

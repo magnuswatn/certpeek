@@ -16,7 +16,7 @@ from cryptography.x509 import Certificate, GeneralName, PolicyInformation
 from cryptography.x509.certificate_transparency import SignedCertificateTimestamp
 from OpenSSL import SSL, crypto
 
-__version__ = "2025.5.12"
+__version__ = "2025.6.22"
 
 BAD_BUYPASS_CERTS = [
     "8acd454c36e2f873c90ae6c00df75928daa414a43be745e866e8172344178824",
@@ -71,6 +71,9 @@ KNOWN_LOGS = {
     "Nc8ZG7+xbFe/D61MbULLu7YnICZR6j/hKu+oA8M71kw=": "DigiCert Yeti2023 Log",
     "SLDja9qmRzQP5WoC+p0w6xxSActW3SyB2bu/qznYhHM=": "DigiCert Yeti2024 Log",
     "fVkeEuF4KnscYWd8Xv340IdcFKBOlZ65Ay/ZDowuebg=": "DigiCert Yeti2025 Log",
+    "750EQi4gtDIQJ1TfUtJRRgJ/hEwH/YZeySLub86fe7w=": "Geomys 'Tuscolo2025h2'",
+    "cX6V88I4im2x44RJPTHhWqliCHYtQgDgBQzQZ7WmYeI=": "Geomys 'Tuscolo2026h1'",
+    "Rq+GPTs+5Z+ld96oJF02sNntIqIj9GF3QSKUUu6VUF8=": "Geomys 'Tuscolo2026h2'",
     "Y/Lbzeg7zCzPC3KEJ1drM6SNYXePvXWmOLHHaFRL2I0=": "Google 'Argon2019' log",
     "sh4FzIuizYogTodm+Su5iiUgZ2va+nDnsklTLe+LkF4=": "Google 'Argon2020' log",
     "9lyUL9F3MCIUVBgIMJRWjuNNExkzv98MLyALzE7xZOM=": "Google 'Argon2021' log",
@@ -106,6 +109,11 @@ KNOWN_LOGS = {
     "DeHyMCvTDcFAYhIJ6lUu/Ed0fLHX6TDvDkIetH5OqjQ=": "Let's Encrypt 'Oak2025h2'",
     "GYbUxyiqb/66A294Kk0BkarOLXIxD67OXXBBLSVMx9Q=": "Let's Encrypt 'Oak2026h1'",
     "rKswcGzr7IQx9BPS9JFfER5CJEOx8qaMTzwrO6ceAsM=": "Let's Encrypt 'Oak2026h2'",
+    "DR28iUTp9QBVQtctPhRMzEMIKrbqHpTf1wZlfS6G8wE=": "Sectigo 'Elephant2025h2'",
+    "0W6ppWgHfmY1oD83pd28A6U8QRIU1IgY9ekxsyPLlQQ=": "Sectigo 'Elephant2026h1'",
+    "r2eIO1ewTt2Pptl+9i6o64EKx3Fg8CReVdYML+eFhzo=": "Sectigo 'Elephant2026h2'",
+    "YEyar3p/d18B1Ab8kg3ImesLHH34yVIb+voXdzuXi8k=": "Sectigo 'Elephant2027h1'",
+    "okkM3NuOM6QAMhdg1tTVGiA2GR6nfZaL4mqKAPb///c=": "Sectigo 'Elephant2027h2'",
     "b1N2rDHwMRnYmQCkURX/dxUcEdkCwQApBo2yCJo32RM=": "Sectigo 'Mammoth' CT log",
     "KdA6G7Z0qnEc0wNbZVfBT4qni0/oOJRJ7KRT+US9JGg=": "Sectigo 'Mammoth2024h1'",
     "UIUBWNy2BZXADpKoEQLszf4/a3hYQp9XmDU4ydpSUGM=": "Sectigo 'Mammoth2024h1b'",
