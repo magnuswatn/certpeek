@@ -37,8 +37,11 @@ def main() -> None:
         log_key = b64decode(log.get("key"))
         sha256.update(log_key)
         log_id = b64encode(sha256.digest()).decode()
-        if log_id == "LtakTeuPDIZGZ3acTt0EH4QjZ1X6OqymNNCTXfzVmnA=":
-            # Bogus placeholder log to unbreak misbehaving CT libraries
+        if log_id in (
+            "LtakTeuPDIZGZ3acTt0EH4QjZ1X6OqymNNCTXfzVmnA=",
+            "0vxlL6X5tzi4N1X6XrFfC0UlP06Po7m2T9TeVmLRhwg=",
+        ):
+            # Bogus placeholder logs to unbreak misbehaving CT libraries
             continue
         KNOWN_LOGS.update({log_id: log_desc})
 
