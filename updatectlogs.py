@@ -21,7 +21,7 @@ CERTPEEK_SOURCE_FILE = Path("certpeek.py")
 
 
 def main() -> None:
-    resp = httpx.get("https://www.gstatic.com/ct/log_list/v3/log_list.json")
+    resp = httpx.get("https://loglist.certspotter.org/ALL.json")
     resp.raise_for_status()
     js = resp.json()
 
@@ -33,8 +33,12 @@ def main() -> None:
 
     for log in logs:
         sha256 = hashlib.sha256()
-        log_desc = log.get("description")
-        log_key = b64decode(log.get("key"))
+
+        log_desc = log["description"]
+        log_key = log["key"]
+        if log_key is None:
+            continue
+        log_key = b64decode(log_key)
         sha256.update(log_key)
         log_id = b64encode(sha256.digest()).decode()
         if log_id in (
