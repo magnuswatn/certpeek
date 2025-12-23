@@ -55,7 +55,7 @@ lint.select = [
     "PLE",
     "W",
     "B",
-
+    "UP",
     "DTZ",
     "TRY",
     "C4",

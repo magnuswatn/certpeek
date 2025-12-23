@@ -1,10 +1,11 @@
 import socket
 import sys
 from base64 import b64encode
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from ipaddress import IPv4Address, IPv6Address, ip_address
-from typing import Any, Iterable, List, Optional, Union
+from typing import Any
 from urllib.parse import urlsplit
 
 import click
@@ -156,7 +157,7 @@ KNOWN_CERT_TYPES = {
 
 @dataclass
 class Host:
-    host: Union[str, IPv4Address, IPv6Address]
+    host: str | IPv4Address | IPv6Address
     port: int
 
     def __str__(self) -> str:
@@ -182,8 +183,8 @@ class Host:
 @click.option("--openssl-format", is_flag=True, help="Print cert info like OpenSSL.")
 def main(
     host: str,
-    proxy: Optional[str],
-    servername: Optional[str],
+    proxy: str | None,
+    servername: str | None,
     *,
     no_servername: bool,
     print_pem: bool,
@@ -226,16 +227,14 @@ def main(
         # If the host requires a client certificate
         # the handshake will fail, but we will still
         # get our certificate.
-        ssl_error: Optional[SSL.Error] = error
+        ssl_error: SSL.Error | None = error
     else:
         ssl_error = None
 
     certs = conn.get_peer_cert_chain()
     if not certs:
         click.secho(
-            "Could not retrieve a certificate chain from the specified host: {}".format(
-                ssl_error
-            ),
+            f"Could not retrieve a certificate chain from the specified host: {ssl_error}",
             fg="red",
             err=True,
         )
@@ -312,7 +311,7 @@ def get_socket_via_proxy(proxy: str, host: Host) -> socket.socket:
 
     try:
         s = socket.create_connection((proxy_host, proxy_port))
-    except socket.error as error:
+    except OSError as error:
         click.secho(f"Unable to connect to proxy {proxy}: {error}", fg="red", err=True)
         sys.exit(2)
 
@@ -333,20 +332,20 @@ def get_socket_via_proxy(proxy: str, host: Host) -> socket.socket:
 def get_direct_socket(host: Host) -> socket.socket:
     try:
         s = socket.create_connection((str(host.host), host.port))
-    except socket.error as error:
+    except OSError as error:
         click.secho(f"Unable to connect to {host}: {error}", fg="red", err=True)
         sys.exit(4)
     return s
 
 
-def print_field(header: str, values: Iterable[Union[str, int, None]]) -> None:
+def print_field(header: str, values: Iterable[str | int | None]) -> None:
     if values and any(values):
-        click.secho("[{}]".format(header))
+        click.secho(f"[{header}]")
         for value in values:
-            click.echo("  {}".format(value))
+            click.echo(f"  {value}")
 
 
-def get_log_names(scts: List[SignedCertificateTimestamp]) -> List[str]:
+def get_log_names(scts: list[SignedCertificateTimestamp]) -> list[str]:
     names = []
     for sct in scts:
         names.append(KNOWN_LOGS.get(b64encode(sct.log_id).decode(), "Unknown log"))
@@ -355,13 +354,13 @@ def get_log_names(scts: List[SignedCertificateTimestamp]) -> List[str]:
 
 def get_key_info(key: Any) -> str:
     if isinstance(key, RSAPublicKey):
-        return "RSA ({})".format(key.key_size)
+        return f"RSA ({key.key_size})"
     if isinstance(key, EllipticCurvePublicKey):
-        return "ECC ({})".format(key.curve.name)
+        return f"ECC ({key.curve.name})"
     return "Unknown"
 
 
-def get_type(policies: List[PolicyInformation]) -> Optional[str]:
+def get_type(policies: list[PolicyInformation]) -> str | None:
     for policy in policies:
         try:
             return KNOWN_CERT_TYPES[policy.policy_identifier.dotted_string]
@@ -416,15 +415,15 @@ def get_not_after_status(cert: Certificate) -> str:
     else:
         text = click.style("Valid", fg="green")
 
-    return "{} ({})".format(get_local_datetime(not_after), text)
+    return f"{get_local_datetime(not_after)} ({text})"
 
 
-def get_hash_algorithm_name(cert: Certificate) -> Optional[str]:
+def get_hash_algorithm_name(cert: Certificate) -> str | None:
     return cert.signature_hash_algorithm.name if cert.signature_hash_algorithm else None
 
 
 def name_matches_destination(
-    name: GeneralName, destination: Union[str, IPv4Address, IPv6Address]
+    name: GeneralName, destination: str | IPv4Address | IPv6Address
 ) -> bool:
     if name.value == destination:
         return True
@@ -443,13 +442,13 @@ def name_matches_destination(
 
 def print_cert_info(
     cert: Certificate,
-    destination: Union[str, IPv4Address, IPv6Address],
-    last_cert: Optional[Certificate],
+    destination: str | IPv4Address | IPv6Address,
+    last_cert: Certificate | None,
 ) -> Certificate:
-    sans: List[str] = []
-    scts: List[SignedCertificateTimestamp] = []
-    policies: List[PolicyInformation] = []
-    ekus: List[str] = []
+    sans: list[str] = []
+    scts: list[SignedCertificateTimestamp] = []
+    policies: list[PolicyInformation] = []
+    ekus: list[str] = []
 
     for ext in cert.extensions:
         if ext.oid.dotted_string == "2.5.29.17":
