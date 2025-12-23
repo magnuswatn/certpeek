@@ -36,16 +36,16 @@ include = ["certpeek.py"]
 [tool.hatch.version]
 path = "certpeek.py"
 
-[tool.hatch.envs.default]
-dependencies = ["black", "isort", "mypy", "types-pyOpenSSL", "httpx"]
+[dependency-groups]
+dev = [
+    "black",
+    "isort",
+    "mypy>=1.19.0",
+    "httpx",
+]
 
-[tool.hatch.envs.default.scripts]
-mypy = "python -m mypy --config=pyproject.toml certpeek.py"
-black = "python -m black --config=pyproject.toml certpeek.py"
-isort = "python -m isort --settings-file=pyproject.toml certpeek.py"
-checks = ["black", "isort", "mypy"]
-updatectlogs = "./updatectlogs.py"
-py = "python"
+[tool.uv]
+exclude-newer = "P14D"
 
 [tool.isort]
 profile = "black"
