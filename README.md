@@ -24,13 +24,28 @@ Options:
   -h, --help         Show this message and exit.
 ```
 
-Install with pip:
+
+Run it with uvx:
+
+```
+uvx certpeek google.no
+```
+
+Or install it permanently with either
+
+uv:
+
+```
+uv tool install certpeek
+```
+
+pipx:
+```
+pipx install certpeek
+```
+
+or pip:
 
 ```
 pip install certpeek
-```
-
-or with pipx:
-```
-pipx install certpeek
 ```
