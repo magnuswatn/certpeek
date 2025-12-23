@@ -8,9 +8,9 @@ from typing import Any, Iterable, List, Optional, Union
 from urllib.parse import urlsplit
 
 import click
+from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePublicKey
-from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 from cryptography.x509 import Certificate, GeneralName, PolicyInformation
 from cryptography.x509.certificate_transparency import SignedCertificateTimestamp
