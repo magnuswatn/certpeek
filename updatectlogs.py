@@ -44,11 +44,13 @@ def main() -> None:
 
     unformatted_new_known_logs_list = "KNOWN_LOGS="
     unformatted_new_known_logs_list += str(
-        {id: desc for id, desc in sorted(KNOWN_LOGS.items(), key=itemgetter(1))}
+        dict(sorted(KNOWN_LOGS.items(), key=itemgetter(1)))
     )
     new_known_logs_list = subprocess.check_output(
-        ["black", "--code", unformatted_new_known_logs_list]
-    ).decode()
+        ["ruff", "format", "--stdin-filename", "ctlist.py"],  # noqa: S607
+        input=unformatted_new_known_logs_list,
+        text=True,
+    )
 
     certpeek_source = CERTPEEK_SOURCE_FILE.read_text()
     new_certpeek_source = re.sub(

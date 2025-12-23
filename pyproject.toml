@@ -38,27 +38,36 @@ path = "certpeek.py"
 
 [dependency-groups]
 dev = [
-    "black",
-    "isort",
-    "mypy>=1.19.0",
     "httpx",
+    "ty>=0.0.5",
+    "ruff>=0.14.8",
 ]
 
 [tool.uv]
 exclude-newer = "P14D"
+exclude-newer-package = { ty = "P2D" }
 
-[tool.isort]
-profile = "black"
+[tool.ruff]
+lint.select = [
+    "E",
+    "F",
+    "PLW",
+    "PLE",
+    "W",
+    "B",
 
-[tool.mypy]
-warn_unused_configs = true
-disallow_subclassing_any = true
-disallow_untyped_calls = true
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
-disallow_untyped_decorators = true
-check_untyped_defs = true
-no_implicit_optional = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-warn_return_any = true
+    "DTZ",
+    "TRY",
+    "C4",
+    "I",
+    "N",
+    "G",
+    "PIE",
+    "PT",
+    "PTH",
+    "S",
+    "SIM",
+    "RUF",
+    "FBT",
+]
+lint.ignore = ["TRY003", "SIM105", "W191", "E501"]

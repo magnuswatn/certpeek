@@ -184,6 +184,7 @@ def main(
     host: str,
     proxy: Optional[str],
     servername: Optional[str],
+    *,
     no_servername: bool,
     print_pem: bool,
     first_only: bool,
@@ -239,6 +240,7 @@ def main(
             err=True,
         )
         sys.exit(1)
+        return  # https://github.com/astral-sh/ty/issues/690
 
     last_cert = None
     for cert in certs:
@@ -274,8 +276,8 @@ def parse_host_input(input: str) -> Host:
 
     try:
         port = parsed_host.port
-    except ValueError:
-        raise click.BadParameter("Invalid port specified")
+    except ValueError as ve:
+        raise click.BadParameter("Invalid port specified") from ve
 
     if port is None:
         # default to 443, or whatever is default for the
@@ -302,8 +304,8 @@ def get_socket_via_proxy(proxy: str, host: Host) -> socket.socket:
     proxy_host = proxy_addr.hostname
     try:
         proxy_port = proxy_addr.port or 8080
-    except ValueError:
-        raise click.BadParameter("Invalid proxy port specified")
+    except ValueError as ve:
+        raise click.BadParameter("Invalid proxy port specified") from ve
 
     if proxy_host is None:
         raise click.BadParameter("Invalid proxy specified")
@@ -457,7 +459,7 @@ def print_cert_info(
                 else:
                     sans.append(str(name.value))
         elif ext.oid.dotted_string == "1.3.6.1.4.1.11129.2.4.2":
-            scts = [sct for sct in ext.value]
+            scts.extend(ext.value)
         elif ext.oid.dotted_string == "2.5.29.32":
             policies = ext.value
         elif ext.oid.dotted_string == "2.5.29.37":
@@ -476,7 +478,7 @@ def print_cert_info(
     print_field("Type", [get_type(policies)])
     print_field("Extended Key Usages", ekus)
     print_field("Signature alg", [get_hash_algorithm_name(cert)])
-    print_field("SHA1", [cert.fingerprint(hashes.SHA1()).hex()])
+    print_field("SHA1", [cert.fingerprint(hashes.SHA1()).hex()])  # noqa:S303
     print_field("SHA256", [cert.fingerprint(hashes.SHA256()).hex()])
 
     if cert.fingerprint(hashes.SHA256()).hex() in BAD_BUYPASS_CERTS:
