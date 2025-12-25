@@ -9,6 +9,7 @@ from typing import Any
 from urllib.parse import urlsplit
 
 import click
+import idna
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePublicKey
@@ -292,7 +293,12 @@ def parse_host_input(input: str) -> Host:
     try:
         return Host(ip_address(parsed_host.hostname), port)
     except ValueError:
+        pass
+
+    if parsed_host.hostname.isascii():
         return Host(parsed_host.hostname, port)
+
+    return Host(idna.encode(parsed_host.hostname).decode(), port)
 
 
 def get_socket_via_proxy(proxy: str, host: Host) -> socket.socket:
