@@ -14,11 +14,16 @@ from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePublicKey
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
-from cryptography.x509 import Certificate, GeneralName, PolicyInformation
+from cryptography.x509 import (
+    BasicConstraints,
+    Certificate,
+    GeneralName,
+    PolicyInformation,
+)
 from cryptography.x509.certificate_transparency import SignedCertificateTimestamp
 from OpenSSL import SSL, crypto
 
-__version__ = "2025.12.27"
+__version__ = "2026.1.20"
 
 BAD_BUYPASS_CERTS = [
     "8acd454c36e2f873c90ae6c00df75928daa414a43be745e866e8172344178824",
@@ -532,12 +537,17 @@ def get_key_info(key: Any) -> str:
     return "Unknown"
 
 
-def get_type(policies: list[PolicyInformation]) -> str | None:
+def get_type(policies: list[PolicyInformation], *, is_ca: bool) -> str | None:
     for policy in policies:
         try:
-            return KNOWN_CERT_TYPES[policy.policy_identifier.dotted_string]
+            usage = KNOWN_CERT_TYPES[policy.policy_identifier.dotted_string]
         except KeyError:
-            pass
+            continue
+
+        if is_ca:
+            return f"CA that issues {usage}s"
+        return usage
+
     return None
 
 
@@ -621,6 +631,7 @@ def print_cert_info(
     scts: list[SignedCertificateTimestamp] = []
     policies: list[PolicyInformation] = []
     ekus: list[str] = []
+    is_ca = False
 
     for ext in cert.extensions:
         if ext.oid.dotted_string == "2.5.29.17":
@@ -635,6 +646,8 @@ def print_cert_info(
             policies = ext.value
         elif ext.oid.dotted_string == "2.5.29.37":
             ekus = [eku._name for eku in ext.value]
+        elif isinstance(ext.value, BasicConstraints):
+            is_ca = ext.value.ca
 
     click.secho("#############################################################")
 
@@ -646,7 +659,7 @@ def print_cert_info(
     print_field("Not after", [get_not_after_status(cert)])
     print_field("SANs", sans)
     print_field("SCTs", get_log_names(scts))
-    print_field("Type", [get_type(policies)])
+    print_field("Type", [get_type(policies, is_ca=is_ca)])
     print_field("Extended Key Usages", ekus)
     print_field("Signature alg", [get_hash_algorithm_name(cert)])
     print_field("SHA1", [cert.fingerprint(hashes.SHA1()).hex()])  # noqa:S303
