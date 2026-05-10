@@ -23,7 +23,7 @@ from cryptography.x509 import (
 from cryptography.x509.certificate_transparency import SignedCertificateTimestamp
 from OpenSSL import SSL, crypto
 
-__version__ = "2026.1.20"
+__version__ = "2026.5.10"
 
 BAD_BUYPASS_CERTS = [
     "8acd454c36e2f873c90ae6c00df75928daa414a43be745e866e8172344178824",
@@ -53,6 +53,8 @@ KNOWN_LOGS = {
     "sLeEvIHA3cR1ROiD8FmFu5B30TTYq4iysuUzmAuOUIs=": "Behind The Sofa",
     "pXesnO11SN2PAltnokEInfhuD0duwgPC7L7bGF8oJjg=": "CNNIC",
     "zbUXm3/BwEb+6jETaj+PAC5hgvr4iW/syLL1tatgSQA=": "Certly",
+    "9EGV1vAOLbVUNcrdV3iS5T4VrUFwWPh44U/2uRh0FYk=": "Chrome Mimic 1",
+    "si9+3rWvav5QPeBAgbLXTBJThJL+3yyypSZQPO9TztI=": "Chrome Mimic 2",
     "ORpT9vlZkgxya++m6eVhlRlIazWCHo6bP8qCGYmzoW8=": "Cloudflare Cirrus",
     "H7w24ALt6X9AGZ6Gs1c7ikIX2AGHdGrQ2gOgYFTSDfQ=": "Cloudflare Nimbus 2017",
     "23Sv7ssp7LH+yj5xbSzluaq7NveEcYPHXZ1PN7Yfv2Q=": "Cloudflare Nimbus 2018",
@@ -138,10 +140,22 @@ KNOWN_LOGS = {
     "1219ENGn9XfCx+lf1wC/+YLJM1pl4dCzAXMXwMjFaXc=": "Google Argon 2026h2",
     "1tWNqdAXU/NqSqDHV0kCr+vH3CzTjNn3ZMgMiRkenwI=": "Google Argon 2027h1",
     "aPaY+B9kgr46jO65KB1M/HFRXWeT1ETRCmesu09P+8Q=": "Google Aviator",
+    "Ida8pGWG3oR5BIvzeNP2lqX0zFFs73zy2H/15xN0Ht0=": "Google CoachAndHorses 2026h1",
+    "Xk+hRjqD27R5prdS05bhyQxjDbDZ9sDelTzC7dZPUKM=": "Google CoachAndHorses 2026h2",
+    "atJoPkfo0oBkkUI/1kQCGiJuzbhhm+1acN9ps2hPqi0=": "Google CoachAndHorses 2027h1",
+    "7PBUNaSTKW0Kvz7J0JbyGycBLEcaHoPngTZnpglSvqY=": "Google CoachAndHorses 2027h2",
     "w78Dp+HKiEHGB7rj/0Jw/KXsRbGG675OLPP8d4Yw9fY=": "Google Crucible",
     "HQJLjrFJizRN/YfqPvwJlvdQbyNdHUlwYaR3PEOcJfs=": "Google Daedalus",
     "KTxRllTIOWW6qlD8WAfUt2+/WHopctykwwz05UVH9Hg=": "Google Icarus",
+    "NAT+bjigp++LN0smdfkvw3a0dQhGJU1BRyttJqH8TrI=": "Google ParcelYard 2025h2",
+    "utuIpG+cr6QJDoLlk1bbbni0pT9YLbCBl5UkLym2jJg=": "Google ParcelYard 2026h2",
+    "HIl0B+YBCgEpO7Z439ejaM6xjMpSHcyk04bkoy5bXQQ=": "Google ParcelYard 2027h1",
+    "aYS3IzyydLLRRn2l4EDXH+upCiHniGU3Srn5vPhocjc=": "Google ParcelYard 2027h2",
     "pLkJkLQYWBSHuxOizGdwCjw1mAT5G9+443fNDsgN3BA=": "Google Pilot",
+    "R2+xhIwFH6THm9OHe+3jwHDtxTbH17IZLcZiY5BgdTM=": "Google PlumbersArms 2025h2",
+    "IPBfqqOkkvxqwUjMM6ICNhhrSfqpfmuzkk+yXsNrHDU=": "Google PlumbersArms 2026h2",
+    "X/nA+6QtrHjOZELrGazggaKb1OL7U68MYzB55QWCBMk=": "Google PlumbersArms 2027h1",
+    "M3qex8rmqQSLdS8tk65+SyqQLSG0lxKdg+J5x1PJL4w=": "Google PlumbersArms 2027h2",
     "7ku9t3XOYLrhQmkfq+GeZqMPfl+wctiDAMR7iXqo/cs=": "Google Rocketeer",
     "u9nfvB+KcbWTlCOXqpJ7RzhXlQqrUugakJZkNo4e0YU=": "Google Skydiver",
     "UutLIl7IlpdIUGdfI+Q7wdAh4yFM5S7NX6h8IDzfygM=": "Google Solera 2018",
@@ -216,6 +230,7 @@ KNOWN_LOGS = {
     "7audHd2Dc5Wf9SqI5Gu0vMPEzE12imDM/042LX+41mg=": "Let's Encrypt Sapling 2023h2",
     "qmywxcn0xJ2NjqkMORfg1wrZIhC/BX9BUJOCzDUMmEY=": "Let's Encrypt Sapling 2024h1",
     "hRuuju4zwbmHP8ScenwnZWY7a4BjAwQK7KbBEaWr6dc=": "Let's Encrypt Sapling 2024h2",
+    "IeUaRNi551QOp/vgutd3NhVgZoTRWusz5kW06VXziIM=": "Let's Encrypt Sapling 2025h1",
     "TgJ3oMtvarf2feceaghbLRgMKXeCS/tMK72dLNQR874=": "Let's Encrypt Sycamore 2025h1b",
     "94/yCGmtl2pDc7SsqLOyAxSOFO3mi+FBU1uhNot7qAY=": "Let's Encrypt Sycamore 2025h2b",
     "W/beU/H7+sSaGFl0aUWhpqconV5wpg9IRQ5Ya7mucrg=": "Let's Encrypt Sycamore 2025h2d",
