@@ -411,7 +411,6 @@ def main(
             err=True,
         )
         sys.exit(1)
-        return  # https://github.com/astral-sh/ty/issues/690
 
     last_cert = None
     for cert in certs:
