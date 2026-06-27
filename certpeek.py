@@ -1,3 +1,22 @@
+__lazy_modules__ = (
+    "socket",
+    "sys",
+    "base64",
+    "collections.abc",
+    "datetime ",
+    "ipaddress",
+    "typing ",
+    "urllib.parse",
+    "idna",
+    "cryptography.exceptions",
+    "cryptography.hazmat.primitives",
+    "cryptography.hazmat.primitives.asymmetric.ec",
+    "cryptography.hazmat.primitives.asymmetric.rsa",
+    "cryptography.x509",
+    "cryptography.x509.certificate_transparency",
+    "OpenSSL",
+)
+
 import socket
 import sys
 from base64 import b64encode
@@ -23,7 +42,7 @@ from cryptography.x509 import (
 from cryptography.x509.certificate_transparency import SignedCertificateTimestamp
 from OpenSSL import SSL, crypto
 
-__version__ = "2026.5.10"
+__version__ = "2026.6.27"
 
 BAD_BUYPASS_CERTS = [
     "8acd454c36e2f873c90ae6c00df75928daa414a43be745e866e8172344178824",
